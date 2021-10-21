@@ -1,0 +1,53 @@
+* {
+  box-sizing: border-box;
+}
+
+html, body, #app, #loading {
+  height: 100%;
+}
+
+body {
+  max-width: 90%;
+  width: 800px;
+  font-family: Helvetica, Arial, sans-serif;
+  margin: auto;
+}
+
+#loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+#loading div {
+  animation: spin 0.33s linear infinite;
+  width: 48px;
+  height: 48px;
+  border-radius: 24px;
+  border: 3px solid transparent;
+  border-left: 3px solid silver;
+  border-right: 3px solid silver;
+}
+
+.card {
+  padding: 1em;
+  margin: 1em 0px;
+}
+
+.card h3 {
+  margin-top: 0px;
+}
+
+.card button {
+  float: right;
+}
+
+.card:nth-child(even) {
+  background-color: #eee;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
