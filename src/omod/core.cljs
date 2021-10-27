@@ -35,10 +35,20 @@
          :experience (str (int (* (js/Math.random) 10)) " years")})
       names)))
 
-(js/console.log (clj->js (generate-strings job-names 50)))
+;*** user interface ***;
+
+(defn go-screen [state which]
+  (swap! state assoc :screen which))
+
+(defn component-nav [state]
+  [:nav
+   [:div {:on-click #(go-screen state :jobs)} "jobs"]
+   [:div {:on-click #(go-screen state :game)} "main"]
+   [:div {:on-click #(go-screen state :title)} "quit"]])
 
 (defn component-job-board [state]
-  [:section
+  [:section#jobs.page
+   [component-nav state]
    [:header
     [:h1 "Procedurally generated jobs"]
     [:h3 "You've come to the right place my friend"]]
@@ -51,6 +61,7 @@
 
 (defn component-game [state]
   [:section#game.screen
+   [component-nav state]
    "This is a game."
    ]
   )
