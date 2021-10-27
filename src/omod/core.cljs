@@ -8,8 +8,7 @@
 (def job-names (js/JSON.parse (rc/inline "data/jobs.json")))
 (js/console.log job-names)
 
-
-(defonce state (r/atom {}))
+(defonce state (r/atom {:screen :title}))
 
 (defn generate-strings [src n]
   (let [m (markov.)
@@ -39,7 +38,7 @@
 (js/console.log (clj->js (generate-strings job-names 50)))
 
 (defn component-job-board [state]
-  [:main
+  [:section
    [:header
     [:h1 "Procedurally generated jobs"]
     [:h3 "You've come to the right place my friend"]]
@@ -50,15 +49,27 @@
       [:button "apply"]    
       [:p "Experience: " (:experience job)]])])
 
+(defn component-game [state]
+  [:section#game.screen
+   "This is a game."
+   ]
+  )
+
+(defn component-title [state]
+  [:section#title.screen
+   [:img#title {:src "title.png"}]
+   [:button {:on-click #(swap! state assoc :screen :game)} "Play"]])
+
 (defn component-main [state]
-  [:div
-   [:h1 "omod"]
-   [:p "Welcome to the app!"]
-   [:button {:on-click #(js/alert "Hello world!")} "click me"]])
+  [:main
+   (case (:screen @state)
+     :jobs [component-job-board state]
+     :game [component-game state]
+     [component-title state])])
 
 (defn start {:dev/after-load true} []
   (swap! state assoc :jobs (make-jobs 50))
-  (rdom/render [component-job-board state]
+  (rdom/render [component-main state]
                (js/document.getElementById "app")))
 
 (defn init []
