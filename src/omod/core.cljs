@@ -101,7 +101,7 @@
    [component-game-state state]
    [:header
     [:h1 "Job market"]]
-   (for [job (:jobs @state)]
+   (for [job (-> @state :game :jobs)]
      [:div.card.fill
       [:h3 (:name job)]
       [:p "Salary: " (:salary job)]
