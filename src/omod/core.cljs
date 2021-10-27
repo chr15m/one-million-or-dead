@@ -14,7 +14,6 @@
   (let [m (markov.)
         lengths (.map job-names #(or (aget % "length") 0))
         longest (apply js/Math.max lengths)]
-    (js/console.log "longest" lengths)
     (.addStates m src)
     (.train m)
     (loop [out []]
@@ -35,25 +34,75 @@
          :experience (str (int (* (js/Math.random) 10)) " years")})
       names)))
 
-;*** user interface ***;
+(defn start-ticker [ticker state interval]
+  (when ticker
+    (js/clearInterval ticker))
+  (js/setInterval
+    #(swap! state update-in [:game :month] inc)
+    interval))
 
 (defn go-screen [state which]
   (swap! state assoc :screen which))
 
+(defn rng-int [a b]
+  (let [diff (- b a)]
+    (js/Math.floor
+      (+
+       (* (js/Math.random) diff)
+       a))))
+
+(defn start-game [state]
+  (swap! state
+         #(-> %
+              (assoc
+                :game
+                {:birth-year (rng-int 1800 2100)
+                 :birth-month (rng-int 0 12)
+                 :month 156
+                 :net-worth 0
+                 :play true
+                 :jobs (make-jobs 1000)})
+              (assoc :screen :game)
+              (update-in [:ticker] start-ticker state 1000))))
+
+;*** user interface ***;
+
+(defn display-date [state]
+  (let [d (-> state :game :month)
+        ds (str "2010-" (inc (mod d 12)))
+        date (js/Date. ds)
+        month-name (.toLocaleString date "default" (clj->js {:month "short"}))]
+    month-name))
+
+(defn display-age [state]
+  (let [d (-> state :game :month)
+        b (-> state :game :birth-month)]
+    (int (/ (- d b) 12))))
+
 (defn component-nav [state]
   [:nav
-   [:div {:on-click #(go-screen state :jobs)} "jobs"]
-   [:div {:on-click #(go-screen state :game)} "main"]
-   [:div {:on-click #(go-screen state :title)} "quit"]])
+   [:button {:on-click #(go-screen state :game)} "home"]
+   [:button {:on-click #(go-screen state :jobs)} "jobs"]
+   [:button {:on-click #(go-screen state :title)} "quit"]])
+
+(defn component-stats [state]
+  [:nav#stats
+   [:div "Net worth $" (-> @state :game :net-worth)]
+   [:div "Job: " (or (:job @state) "None")]
+   [:div (display-date @state) ", age " (display-age @state)]])
+
+(defn component-game-state [state]
+  [:div#game-state
+   [component-stats state]
+   [component-nav state]])
 
 (defn component-job-board [state]
-  [:section#jobs.page
-   [component-nav state]
+  [:section#jobs.screen
+   [component-game-state state]
    [:header
-    [:h1 "Procedurally generated jobs"]
-    [:h3 "You've come to the right place my friend"]]
+    [:h1 "Job market"]]
    (for [job (:jobs @state)]
-     [:div.card
+     [:div.card.fill
       [:h3 (:name job)]
       [:p "Salary: " (:salary job)]
       [:button "apply"]    
@@ -61,15 +110,13 @@
 
 (defn component-game [state]
   [:section#game.screen
-   [component-nav state]
-   "This is a game."
-   ]
-  )
+   [component-game-state state]
+   [:div "This is a game."]])
 
 (defn component-title [state]
   [:section#title.screen
    [:img#title {:src "title.png"}]
-   [:button {:on-click #(swap! state assoc :screen :game)} "Play"]])
+   [:button {:on-click #(start-game state)} "Play"]])
 
 (defn component-main [state]
   [:main
@@ -79,7 +126,6 @@
      [component-title state])])
 
 (defn start {:dev/after-load true} []
-  (swap! state assoc :jobs (make-jobs 50))
   (rdom/render [component-main state]
                (js/document.getElementById "app")))
 

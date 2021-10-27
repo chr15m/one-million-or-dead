@@ -15,27 +15,32 @@ body {
 }
 
 nav {
-  position: absolute;
-  top: 0px;
-  display: flex;
-  justify-content: space-evenly;
   max-width: 90%;
   width: 800px;
+  display: flex;
+  justify-content: space-evenly;
+  margin: 0em auto;
 }
 
 nav > * {
   cursor: pointer;
 }
 
+#stats {
+}
+
 .screen {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
 }
 
 .screen > * {
   margin: 1em;
+}
+
+.page {
 }
 
 .page > * {
@@ -43,7 +48,6 @@ nav > * {
 }
 
 .page header {
-  margin-top: 4em;
 }
 
 .card {
@@ -61,6 +65,10 @@ nav > * {
 
 .card:nth-child(odd) {
   background-color: #eee;
+}
+
+.fill {
+  width: 100%;
 }
 
 button {
@@ -93,6 +101,10 @@ section#title {
 section#title img {
   max-width: 100vw;
   max-height: 50vh;
+}
+
+nav#stats {
+  justify-content: space-between;
 }
 
 /*** loader ***/
