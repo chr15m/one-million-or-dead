@@ -6,7 +6,7 @@
     ["js-markov" :as markov]))
 
 (def job-names (js/JSON.parse (rc/inline "data/jobs.json")))
-(js/console.log job-names)
+(def start-month 156)
 
 (defonce state (r/atom {:screen :title}))
 
@@ -31,7 +31,8 @@
       (fn [n]
         {:name n
          :salary (str (int (* (js/Math.random) 200)) "k")
-         :experience (str (int (* (js/Math.random) 10)) " years")})
+         :experience (str (int (* (js/Math.random) 10)) " years")
+         :uuid (random-uuid)})
       names)))
 
 (defn start-ticker [ticker state interval]
@@ -58,12 +59,20 @@
                 :game
                 {:birth-year (rng-int 1800 2100)
                  :birth-month (rng-int 0 12)
-                 :month 156
+                 :month start-month
                  :net-worth 0
                  :play true
                  :jobs (make-jobs 1000)})
               (assoc :screen :game)
               (update-in [:ticker] start-ticker state 1000))))
+
+(defn apply-for-job [state job]
+  (swap! state update-in [:game :jobs]
+         (fn [jobs]
+           (map #(if (= (:uuid %) (:uuid job))
+                   (assoc job :denied true)
+                   %)
+                jobs))))
 
 ;*** user interface ***;
 
@@ -101,11 +110,14 @@
    [component-game-state state]
    [:header
     [:h1 "Job market"]]
-   (for [job (-> @state :game :jobs)]
-     [:div.card.fill
+   (for [job (take 10 (-> @state :game :jobs))]
+     [:div.card.fill (when (:denied job) {:class "denied"})
       [:h3 (:name job)]
       [:p "Salary: " (:salary job)]
-      [:button "apply"]    
+      [:div.application
+       (if (:denied job)
+         [:p "You didn't get the job."]
+         [:button {:on-click #(apply-for-job state job)} "apply"])]
       [:p "Experience: " (:experience job)]])])
 
 (defn component-game [state]
