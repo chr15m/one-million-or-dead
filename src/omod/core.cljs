@@ -33,16 +33,29 @@
     (map
       (fn [n]
         {:name n
-         :salary (str (int (* (js/Math.random) 200)) "k")
-         :experience (str (int (* (js/Math.random) 10)) " years")
+         :salary (int (* (js/Math.random) 200))
+         :experience (int (* (js/Math.random) 10))
          :uuid (random-uuid)})
       names)))
+
+(defn add-salary [old-state]
+  (let [job (-> old-state :game :job)]
+    (if job
+      (update-in old-state [:game :net-worth] #(+ % (-> job :salary (/ 12))))
+      old-state)))
+
+(defn update-game-state [state]
+  (js/console.log (clj->js @state))
+  (swap! state
+         #(-> %
+              add-salary
+              (update-in [:game :month] inc))))
 
 (defn start-ticker [ticker state interval]
   (when ticker
     (js/clearInterval ticker))
   (js/setInterval
-    #(swap! state update-in [:game :month] inc)
+    #(update-game-state state)
     interval))
 
 (defn go-screen [state which]
@@ -65,17 +78,24 @@
                  :month start-month
                  :net-worth 0
                  :play true
+                 :job nil
                  :jobs (make-jobs (* 12 150))})
               (assoc :screen :game)
               (update-in [:ticker] start-ticker state 1000))))
 
 (defn apply-for-job [state job]
-  (swap! state update-in [:game :jobs]
-         (fn [jobs]
-           (map #(if (= (:uuid %) (:uuid job))
-                   (assoc job :denied true)
-                   %)
-                jobs))))
+  (let [got-the-job (> (* (js/Math.random) 10) (:experience job))]
+    (swap! state
+           (fn [old-state]
+             (let [new-state old-state
+                   new-state (if got-the-job (assoc-in new-state [:game :job] (assoc job :status :got)) new-state)
+                   new-state (update-in new-state [:game :jobs]
+                                        (fn [jobs]
+                                          (map #(if (= (:uuid %) (:uuid job))
+                                                  (assoc job :status (if got-the-job :got :denied))
+                                                  %)
+                                               jobs)))]
+               new-state)))))
 
 ;*** user interface ***;
 
@@ -99,8 +119,7 @@
 
 (defn component-stats [state]
   [:nav#stats
-   [:div "Net worth $" (-> @state :game :net-worth)]
-   [:div "Job: " (or (:job @state) "None")]
+   [:div "Net worth $" (-> @state :game :net-worth (.toFixed 0)) "k"]
    [:div (display-date @state) ", age " (display-age @state)]])
 
 (defn component-game-state [state]
@@ -111,25 +130,32 @@
 (defn component-job-board [state]
   (let [month (or (-> @state :game :month) 0)
         len 10
+        has-job (-> @state :game :job)
         jobs (subvec (-> @state :game :jobs vec) month (+ month len))]
     [:section#jobs.screen
      [component-game-state state]
+     (when has-job
+       [:div.card.fill.parallelogram {:class (:status has-job)}
+        [:h3 "Job: " (:name has-job)]
+        [:p "Salary: " (:salary has-job) "k"]])
      [:header
       [:h1 "Job market"]]
      (for [job jobs]
-       [:div.card.fill.parallelogram {:class (when (:denied job) "denied")
+       [:div.card.fill.parallelogram {:class (:status job)
                                       :key (:uuid job)}
         [:h3 (:name job)]
-        [:p "Salary: " (:salary job)]
+        [:p "Salary: " (:salary job) "k"]
         [:div.application
-         (if (:denied job)
-           [:p "You didn't get the job."]
+         (case (:status job)
+           :denied [:p "You didn't get the job."]
+           :got [:p "You got this job!"]
            [:button {:on-click #(apply-for-job state job)} "apply"])]
-        [:p "Experience: " (:experience job)]])]))
+        [:p "Experience: " (str (:experience job) " years")]])]))
 
 (defn component-game [state]
   [:section#game.screen
    [component-game-state state]
+   [:div "Job: " (or (-> @state :game :job :name) "None")]
    [:div "This is a game."]])
 
 (defn component-title [state]

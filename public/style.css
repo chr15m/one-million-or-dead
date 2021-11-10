@@ -112,6 +112,10 @@ nav > * {
   background: #FF9999;
 }
 
+.card.got:after {
+  background: #99ff99;
+}
+
 .fill {
   width: 100%;
 }
