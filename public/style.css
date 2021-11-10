@@ -1,8 +1,8 @@
-@import url('https://fonts.googleapis.com/css2?family=Londrina+Solid:wght@300;400;900&family=Mochiy+Pop+P+One&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Chelsea+Market&display=swap');
 
 * {
   box-sizing: border-box;
-  font-family: 'Londrina Solid', cursive;
+  font-family: 'Chelsea Market', cursive;
 }
 
 html, body, #app, #loading, main, .screen {
