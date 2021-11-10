@@ -7,8 +7,11 @@
 
 (def job-names (js/JSON.parse (rc/inline "data/jobs.json")))
 (def start-month 156)
+(def domains ["tech" "retail" "hospitality"])
 
 (defonce state (r/atom {:screen :title}))
+
+; *** randomness *** ;
 
 (defn generate-strings [src n]
   (let [m (markov.)
@@ -62,7 +65,7 @@
                  :month start-month
                  :net-worth 0
                  :play true
-                 :jobs (make-jobs 1000)})
+                 :jobs (make-jobs (* 12 150))})
               (assoc :screen :game)
               (update-in [:ticker] start-ticker state 1000))))
 
@@ -106,19 +109,23 @@
    [component-nav state]])
 
 (defn component-job-board [state]
-  [:section#jobs.screen
-   [component-game-state state]
-   [:header
-    [:h1 "Job market"]]
-   (for [job (take 10 (-> @state :game :jobs))]
-     [:div.card.fill (when (:denied job) {:class "denied"})
-      [:h3 (:name job)]
-      [:p "Salary: " (:salary job)]
-      [:div.application
-       (if (:denied job)
-         [:p "You didn't get the job."]
-         [:button {:on-click #(apply-for-job state job)} "apply"])]
-      [:p "Experience: " (:experience job)]])])
+  (let [month (or (-> @state :game :month) 0)
+        len 10
+        jobs (subvec (-> @state :game :jobs vec) month (+ month len))]
+    [:section#jobs.screen
+     [component-game-state state]
+     [:header
+      [:h1 "Job market"]]
+     (for [job jobs]
+       [:div.card.fill.parallelogram {:class (when (:denied job) "denied")
+                                      :key (:uuid job)}
+        [:h3 (:name job)]
+        [:p "Salary: " (:salary job)]
+        [:div.application
+         (if (:denied job)
+           [:p "You didn't get the job."]
+           [:button {:on-click #(apply-for-job state job)} "apply"])]
+        [:p "Experience: " (:experience job)]])]))
 
 (defn component-game [state]
   [:section#game.screen
