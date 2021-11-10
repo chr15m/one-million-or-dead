@@ -1,5 +1,8 @@
+@import url('https://fonts.googleapis.com/css2?family=Londrina+Solid:wght@300;400;900&family=Mochiy+Pop+P+One&display=swap');
+
 * {
   box-sizing: border-box;
+  font-family: 'Londrina Solid', cursive;
 }
 
 html, body, #app, #loading, main, .screen {
@@ -64,11 +67,49 @@ nav > * {
 }
 
 .card:nth-child(odd) {
-  background-color: #eee;
+  /* background-color: #eee; */
 }
 
 .card.denied {
-  background-color: pink;
+  /* background-color: pink; */
+}
+
+.card {
+   padding: 20px 45px;
+   font-size: 30px;
+   border: none;
+   background: none;
+   outline: none;
+   position: relative;
+   z-index: 0;
+   margin: 15px;
+}
+
+.card:before,
+.card:after {
+   content: "";
+   position: absolute;
+   z-index: -1;
+   top: 0;
+   left: 0;
+   right: 0;
+   bottom: 0;
+   clip-path: polygon(0 6%, 100% 0, 95% 97%, 3% 96%);
+   transition: 0.1s all;
+   background: #FFFF99;
+}
+
+.card:before {
+  background: rgba(250, 250, 250, 0.2);
+  transform: translate(0px, 8px);
+}
+
+.card:hover:after {
+  background: #FFFF77;
+}
+
+.card.denied:after {
+  background: #FF9999;
 }
 
 .fill {
@@ -76,21 +117,37 @@ nav > * {
 }
 
 button {
-  font-size: 1.1em;
-  padding: 0.25em 2em;
-  border: 2px solid #006100;
-  border-radius: 0.5em;
-  color: #fefefe;
-  font-weight: bold;
-  background-color: #2B842B;
-  box-shadow: 0px 10px 0px rgb(0 0 0 / 0.2);
-  cursor: pointer;
+   padding: 20px 45px;
+   font-size: 1.5em;
+   border: none;
+   background: none;
+   outline: none;
+   position: relative;
+   z-index: 0;
+   margin: 15px;
 }
 
-button:hover {
-  border: 2px solid green;
-  background-color: #319731;
-  box-shadow: 0px 10px 0px rgb(0 0 0 / 0.2);
+button:before,
+button:after {
+   content: "";
+   position: absolute;
+   z-index: -1;
+   top: 0;
+   left: 0;
+   right: 0;
+   bottom: 0;
+   clip-path: polygon(0 11%, 100% 0, 90% 88%, 3% 96%);
+   transition: 0.1s all;
+   background: #5FB34A;
+}
+button:before {
+  background: rgba(50, 50, 50, 0.2);
+  transform: translate(0px, 8px);
+}
+
+button:hover:before,
+button:hover:after {
+   clip-path: polygon(5% 2%, 100% 5%, 100% 100%, 0% 94%);
 }
 
 /*** specific styles ***/
@@ -104,7 +161,7 @@ section#title {
 
 section#title img {
   max-width: 100vw;
-  max-height: calc(100vh - 6em);
+  max-height: calc(100vh - 8em);
 }
 
 nav#stats {
