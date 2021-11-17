@@ -115,7 +115,9 @@
               (update-in [:ticker] start-ticker state 1000))))
 
 (defn apply-for-job [state job]
-  (let [got-the-job (>= (* (js/Math.random) (-> @state :game :experience) 1.1) (:experience job))]
+  (let [got-the-job (and (>= (* (js/Math.random) (-> @state :game :experience) 1.1) (:experience job))
+                         (or (>= (get-age @state) 16)
+                             (> (js/Math.random) 0.9)))]
     (swap! state
            (fn [old-state]
              (let [new-state old-state
