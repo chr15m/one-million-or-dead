@@ -34,8 +34,8 @@
   (let [names (generate-strings job-names n)]
     (map
       (fn [n]
-        (let [experience (int (js/Math.max 0 (.getNormal RNG 5 5)))
-              multiplier (js/Math.max 1 (.getNormal RNG 5 10))]
+        (let [experience (int (js/Math.max 0 (.getNormal RNG 10 15)))
+              multiplier (js/Math.max 1 (.getNormal RNG 3 10))]
           {:name n
            :salary (int (* (inc experience) multiplier))
            :experience experience
@@ -51,17 +51,39 @@
 
 ; *** functions *** ;
 
+(defn get-age [state]
+  (let [d (-> state :game :month)
+        b (-> state :game :birth-month)]
+    (int (/ (- d b) 12))))
+
+(defn update-tax-food [old-state]
+  old-state)
+
 (defn add-salary [old-state]
+  (let [age (get-age old-state)
+        job (-> old-state :game :job)
+        tax-rate (-> old-state :game :tax-rate)
+        food-price (-> old-state :game :food-price)
+        food-cost (if (> age 18)
+                    (* (js/Math.max 0 (.getNormal RNG 0.5 1)) food-price -1)
+                    0)]
+    (if job
+      (update-in old-state [:game :net-worth] #(+ % food-cost (-> job :salary (/ 12) (* (- 1 tax-rate)))))
+      old-state)))
+
+(defn update-xp [old-state]
   (let [job (-> old-state :game :job)]
     (if job
-      (update-in old-state [:game :net-worth] #(+ % (-> job :salary (/ 12))))
+      (update-in old-state [:game :experience] #(+ % (/ 1 12)))
       old-state)))
 
 (defn update-game-state [state]
   (js/console.log (clj->js @state))
   (swap! state
          #(-> %
+              update-tax-food
               add-salary
+              update-xp
               (update-in [:game :month] inc))))
 
 (defn start-ticker [ticker state interval]
@@ -85,12 +107,15 @@
                  :net-worth 0
                  :play true
                  :job nil
+                 :experience 0
+                 :tax-rate 0.1
+                 :food-price (js/Math.random)
                  :jobs (make-jobs (* 12 150))})
               (assoc :screen :game)
               (update-in [:ticker] start-ticker state 1000))))
 
 (defn apply-for-job [state job]
-  (let [got-the-job (> (* (js/Math.random) 10) (:experience job))]
+  (let [got-the-job (>= (* (js/Math.random) (-> @state :game :experience) 1.1) (:experience job))]
     (swap! state
            (fn [old-state]
              (let [new-state old-state
@@ -112,11 +137,6 @@
         month-name (.toLocaleString date "default" (clj->js {:month "short"}))]
     month-name))
 
-(defn display-age [state]
-  (let [d (-> state :game :month)
-        b (-> state :game :birth-month)]
-    (int (/ (- d b) 12))))
-
 (defn component-nav [state]
   [:nav
    [:button {:on-click #(go-screen state :game)} "home"]
@@ -126,7 +146,8 @@
 (defn component-stats [state]
   [:nav#stats
    [:div "Net worth $" (-> @state :game :net-worth (.toFixed 0)) "k"]
-   [:div (display-date @state) ", age " (display-age @state)]])
+   [:div "XP: " (-> @state :game :experience js/Math.floor)]
+   [:div (display-date @state) ", age " (get-age @state)]])
 
 (defn component-game-state [state]
   [:div#game-state
