@@ -3,7 +3,9 @@
     [reagent.core :as r]
     [reagent.dom :as rdom]
     [shadow.resource :as rc]
-    ["js-markov" :as markov]))
+    ["js-markov" :as markov]
+    ["seedrandom" :as seedrandom]
+    ["rot-js" :refer [RNG]]))
 
 (def job-names (js/JSON.parse (rc/inline "data/jobs.json")))
 (def start-month 156)
@@ -32,11 +34,22 @@
   (let [names (generate-strings job-names n)]
     (map
       (fn [n]
-        {:name n
-         :salary (int (* (js/Math.random) 200))
-         :experience (int (* (js/Math.random) 10))
-         :uuid (random-uuid)})
+        (let [experience (int (js/Math.max 0 (.getNormal RNG 5 5)))
+              multiplier (js/Math.max 1 (.getNormal RNG 5 10))]
+          {:name n
+           :salary (int (* (inc experience) multiplier))
+           :experience experience
+           :uuid (random-uuid)}))
       names)))
+
+(defn rng-int [a b]
+  (let [diff (- b a)]
+    (js/Math.floor
+      (+
+       (* (js/Math.random) diff)
+       a))))
+
+; *** functions *** ;
 
 (defn add-salary [old-state]
   (let [job (-> old-state :game :job)]
@@ -60,13 +73,6 @@
 
 (defn go-screen [state which]
   (swap! state assoc :screen which))
-
-(defn rng-int [a b]
-  (let [diff (- b a)]
-    (js/Math.floor
-      (+
-       (* (js/Math.random) diff)
-       a))))
 
 (defn start-game [state]
   (swap! state
@@ -175,4 +181,10 @@
                (js/document.getElementById "app")))
 
 (defn init []
+  (let [seed-from-url (-> (aget js/document "location" "search") (.slice 1))
+        seed (if (= seed-from-url "")
+               (-> (js/Math.random) str (.split ".") second)
+               seed-from-url)]
+    (print "seed" seed)
+    (seedrandom seed #js {:global true}))
   (start))
