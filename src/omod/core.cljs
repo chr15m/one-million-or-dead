@@ -92,27 +92,22 @@
       (assoc-in old-state [:game :outcome] :rich)
       old-state)))
 
-(defn update-game-state [state]
-  ;(js/console.log "game state:" (clj->js @state))
-  ; apply all the state updates
-  (swap! state
-         #(-> %
-              update-aliveness
-              update-tax-food
-              add-salary
-              update-xp
-              update-has-won
-              (update-in [:game :month] inc)))
-  ; stop the ticker once there has been an outcome
-  (when (-> @state :game :outcome)
-    (js/clearInterval (:ticker @state))))
-
-(defn start-ticker [ticker state interval]
-  (when ticker
-    (js/clearInterval ticker))
-  (js/setInterval
-    #(update-game-state state)
-    interval))
+(defn update-game-state [state interval]
+  (js/console.log "game state:" (clj->js @state))
+  (js/console.log "game state (game):" (clj->js (-> @state :game)))
+  (when (:game @state)
+    ; apply all the state updates
+    (swap! state
+           #(-> %
+                update-aliveness
+                update-tax-food
+                add-salary
+                update-xp
+                update-has-won
+                (update-in [:game :month] inc)))
+    ; stop the ticker once there has been an outcome
+    (when (not (-> @state :game :outcome))
+      (js/setTimeout #(update-game-state state interval) interval))))
 
 (defn go-screen [state which]
   (swap! state assoc :screen which))
@@ -133,8 +128,8 @@
                  :outcome nil
                  :food-price (js/Math.random)
                  :jobs (make-jobs (* 12 150))})
-              (assoc :screen :game)
-              (update-in [:ticker] start-ticker state 1000))))
+              (assoc :screen :game)))
+  (update-game-state state 1000))
 
 (defn apply-for-job [state job]
   (let [got-the-job (and (>= (* (js/Math.random) (-> @state :game :experience) 1.1) (:experience job))
