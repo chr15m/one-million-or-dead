@@ -4,10 +4,8 @@
     [shadow.resource :as rc]
     ["js-markov" :as markov]
     ["seedrandom" :as seedrandom]
-    ["react-twemoji$default" :as Twemoji]
+    ["react-twemoji$default" :as tw]
     ["rot-js" :refer [RNG]]))
-
-(js/console.log Twemoji)
 
 (def job-names (js/JSON.parse (rc/inline "data/jobs.json")))
 (def start-month 156)
@@ -187,7 +185,7 @@
   [:section#game.screen
    [component-game-state state]
    [:div "Job: " (or (-> @state :game :job :name) "None")]
-   [:> Twemoji "🎃 🥚 "]
+   [:> tw "🎃 🥚 "]
    [:div "This is a game."]])
 
 (defn component-title [state]
