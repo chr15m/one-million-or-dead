@@ -78,12 +78,18 @@
       old-state)))
 
 (defn update-aliveness [old-state]
-  (let [age (get-age @state)
+  (let [age (get-age old-state)
         mortality-rate (nth mortality-rate-per-year (js/Math.min age (count mortality-rate-per-year)))
         mortality-rate-monthly (/ mortality-rate 12)
         chance (js/Math.random)]
     (if (< chance mortality-rate-monthly)
       (assoc-in old-state [:game :outcome] :dead)
+      old-state)))
+
+(defn update-has-won [old-state]
+  (let [net-worth (-> old-state :game :net-worth)]
+    (if (>= net-worth 1000)
+      (assoc-in old-state [:game :outcome] :rich)
       old-state)))
 
 (defn update-game-state [state]
@@ -95,6 +101,7 @@
               update-tax-food
               add-salary
               update-xp
+              update-has-won
               (update-in [:game :month] inc)))
   ; stop the ticker once there has been an outcome
   (when (-> @state :game :outcome)
@@ -215,7 +222,7 @@
 (defn component-end-of-game [state]
   [:section#end.screen
    [:div
-    (if (-> @state :game :rich)
+    (if (= (-> @state :game :outcome) :rich)
       [:> tw "💸"]
       [:> tw "🪦"])
     [:div
