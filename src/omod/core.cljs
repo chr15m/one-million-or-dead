@@ -12,6 +12,8 @@
 (def start-month 156)
 (def domains ["tech" "retail" "hospitality"])
 (def mortality-rate-per-year (read-string (rc/inline "data/mortality-rate-per-year.edn")))
+(def job-board-size 10)
+(def job-order (shuffle (range 10)))
 
 (defonce state (r/atom {:screen :title}))
 
@@ -93,8 +95,8 @@
       old-state)))
 
 (defn update-game-state [state interval]
-  (js/console.log "game state:" (clj->js @state))
-  (js/console.log "game state (game):" (clj->js (-> @state :game)))
+  ;(js/console.log "game state:" (clj->js @state))
+  ;(js/console.log "game state (game):" (clj->js (-> @state :game)))
   (when (:game @state)
     ; apply all the state updates
     (swap! state
@@ -179,9 +181,8 @@
 
 (defn component-job-board [state]
   (let [month (or (-> @state :game :month) 0)
-        len 10
         has-job (-> @state :game :job)
-        jobs (subvec (-> @state :game :jobs vec) month (+ month len))]
+        jobs (subvec (-> @state :game :jobs vec) month (+ month job-board-size))]
     [:section#jobs.screen
      [component-game-state state]
      (when has-job
@@ -190,17 +191,19 @@
         [:p "Salary: " (:salary has-job) "k"]])
      [:header
       [:h1 "Job market"]]
-     (for [job jobs]
-       [:div.card.fill.parallelogram {:class (:status job)
-                                      :key (:uuid job)}
-        [:h3 (:name job)]
-        [:p "Salary: " (:salary job) "k"]
-        [:div.application
-         (case (:status job)
-           :denied [:p "You didn't get the job."]
-           :got [:p "You got this job!"]
-           [:button {:on-click #(apply-for-job state job)} "apply"])]
-        [:p "Experience: " (str (:experience job) " years")]])]))
+     [:div#job-market
+      (for [j job-order]
+        (let [job (nth jobs (mod (- j month) job-board-size))]
+          [:div.card.parallelogram {:class (:status job)
+                                    :key (:uuid job)}
+           [:h3 (:name job)]
+           [:p "Salary: " (:salary job) "k"]
+           [:div.application
+            (case (:status job)
+              :denied [:p "You didn't get the job."]
+              :got [:p "You got this job!"]
+              [:button {:on-click #(apply-for-job state job)} "apply"])]
+           [:p "Experience: " (str (:experience job) " years")]]))]]))
 
 (defn component-game [state]
   [:section#game.screen

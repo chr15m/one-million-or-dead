@@ -172,6 +172,18 @@ nav#stats {
   justify-content: space-between;
 }
 
+#job-market {
+  flex-direction: row;
+  display: flex;
+  flex-flow: wrap;
+  align-items: center;
+  justify-content: center;
+}
+
+#job-market .card {
+  width: 100%;
+}
+
 /*** loader ***/
 
 #loading {
