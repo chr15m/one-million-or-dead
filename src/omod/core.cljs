@@ -1,4 +1,5 @@
 (ns omod.core (:require
+    [clojure.edn :refer [read-string]]
     [reagent.core :as r]
     [reagent.dom :as rdom]
     [shadow.resource :as rc]
@@ -10,6 +11,7 @@
 (def job-names (js/JSON.parse (rc/inline "data/jobs.json")))
 (def start-month 156)
 (def domains ["tech" "retail" "hospitality"])
+(def mortality-rate-per-year (read-string (rc/inline "data/mortality-rate-per-year.edn")))
 
 (defonce state (r/atom {:screen :title}))
 
@@ -67,9 +69,7 @@
         food-cost (if (> age 18)
                     (* (js/Math.max 0 (.getNormal RNG 0.5 1)) food-price -1)
                     0)]
-    (if job
-      (update-in old-state [:game :net-worth] #(+ % food-cost (-> job :salary (/ 12) (* (- 1 tax-rate)))))
-      old-state)))
+    (update-in old-state [:game :net-worth] #(+ % food-cost (when job (-> job :salary (/ 12) (* (- 1 tax-rate))))))))
 
 (defn update-xp [old-state]
   (let [job (-> old-state :game :job)]
@@ -77,14 +77,28 @@
       (update-in old-state [:game :experience] #(+ % (/ 1 12)))
       old-state)))
 
+(defn update-aliveness [old-state]
+  (let [age (get-age @state)
+        mortality-rate (nth mortality-rate-per-year (js/Math.min age (count mortality-rate-per-year)))
+        mortality-rate-monthly (/ mortality-rate 12)
+        chance (js/Math.random)]
+    (if (< chance mortality-rate-monthly)
+      (assoc-in old-state [:game :outcome] :dead)
+      old-state)))
+
 (defn update-game-state [state]
-  (js/console.log (clj->js @state))
+  ;(js/console.log "game state:" (clj->js @state))
+  ; apply all the state updates
   (swap! state
          #(-> %
+              update-aliveness
               update-tax-food
               add-salary
               update-xp
-              (update-in [:game :month] inc))))
+              (update-in [:game :month] inc)))
+  ; stop the ticker once there has been an outcome
+  (when (-> @state :game :outcome)
+    (js/clearInterval (:ticker @state))))
 
 (defn start-ticker [ticker state interval]
   (when ticker
@@ -109,6 +123,7 @@
                  :job nil
                  :experience 0
                  :tax-rate 0.1
+                 :outcome nil
                  :food-price (js/Math.random)
                  :jobs (make-jobs (* 12 150))})
               (assoc :screen :game)
@@ -130,6 +145,10 @@
                                                jobs)))]
                new-state)))))
 
+(defn exit-game [state]
+  (swap! state dissoc :game)
+  (go-screen state :title))
+
 ;*** user interface ***;
 
 (defn display-date [state]
@@ -143,7 +162,7 @@
   [:nav
    [:button {:on-click #(go-screen state :game)} "home"]
    [:button {:on-click #(go-screen state :jobs)} "jobs"]
-   [:button {:on-click #(go-screen state :title)} "quit"]])
+   [:button {:on-click #(exit-game state)} "quit"]])
 
 (defn component-stats [state]
   [:nav#stats
@@ -193,12 +212,25 @@
    [:img#title {:src "title.png"}]
    [:button {:on-click #(start-game state)} "Play"]])
 
+(defn component-end-of-game [state]
+  [:section#end.screen
+   [:div
+    (if (-> @state :game :rich)
+      [:> tw "💸"]
+      [:> tw "🪦"])
+    [:div
+     [:div "Age " (get-age @state)]
+     [:div "Net worth $" (-> @state :game :net-worth (.toFixed 0)) "k"]]
+    [:button {:on-click #(exit-game state)} "restart"]]])
+
 (defn component-main [state]
   [:main
-   (case (:screen @state)
-     :jobs [component-job-board state]
-     :game [component-game state]
-     [component-title state])])
+   (if (-> @state :game :outcome)
+     [component-end-of-game state]
+     (case (:screen @state)
+       :jobs [component-job-board state]
+       :game [component-game state]
+       [component-title state]))])
 
 (defn start {:dev/after-load true} []
   (rdom/render [component-main state]
