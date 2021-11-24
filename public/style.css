@@ -7,6 +7,7 @@
 
 html, body, #app, #loading, main, .screen {
   height: 100%;
+  background-color: #FFF5DC;
 }
 
 body {
