@@ -1,11 +1,13 @@
-(ns omod.core
-  (:require
+(ns omod.core (:require
     [reagent.core :as r]
     [reagent.dom :as rdom]
     [shadow.resource :as rc]
     ["js-markov" :as markov]
     ["seedrandom" :as seedrandom]
+    ["react-twemoji$default" :as Twemoji]
     ["rot-js" :refer [RNG]]))
+
+(js/console.log Twemoji)
 
 (def job-names (js/JSON.parse (rc/inline "data/jobs.json")))
 (def start-month 156)
@@ -185,6 +187,7 @@
   [:section#game.screen
    [component-game-state state]
    [:div "Job: " (or (-> @state :game :job :name) "None")]
+   [:> Twemoji "🎃 🥚 "]
    [:div "This is a game."]])
 
 (defn component-title [state]
