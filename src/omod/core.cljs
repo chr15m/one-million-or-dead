@@ -182,6 +182,13 @@
 (defn component-age [state]
   [:div (display-date @state) ", age " (get-age @state)])
 
+(defn component-stat [state k txt]
+  (let [v (-> @state :game k)]
+    [:div txt ": "
+     (if (< v 1)
+       (str (* v 100) "%")
+       (js/Math.floor v))]))
+
 (defn component-stats [state]
   [:nav#stats
    [component-net-worth state]
@@ -199,6 +206,9 @@
         jobs (subvec (-> @state :game :jobs vec) month (+ month job-board-size))]
     [:section#jobs.screen
      [component-game-state state]
+     [:div
+      [component-stat state :tax-rate "Taxation rate"]
+      [component-stat state :savings-rate "Savings rate"]]
      (when has-job
        [:div.card.fill.parallelogram {:class (:status has-job)}
         [:h3 "Job: " (:name has-job)]
@@ -239,7 +249,8 @@
   [:section#game.screen
    [component-age state]
    [component-wealth state]
-   [component-net-worth state]
+   [:div
+    [component-net-worth state]]
    [:div
     [:div "Job: " (or (-> @state :game :job :name) "None")]
     [:button {:on-click #(go-screen state :jobs)} [:> tw "⚒️ job board"]]]
@@ -254,8 +265,9 @@
   [:section#end.screen
    [:div
     (if (= (-> @state :game :outcome) :rich)
-      [:> tw "💸"]
-      [:> tw "🪦"])
+      [:> tw {:options {:folder "svg" :ext ".svg"}} "🧐"
+       [:p "You made a million!"]]
+      [:> tw {:options {:folder "svg" :ext ".svg"}} "🪦"])
     [:div
      [:div "Age " (get-age @state)]
      [:div "Net worth $" (-> @state :game :net-worth (.toFixed 0)) "k"]]
