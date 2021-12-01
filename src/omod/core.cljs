@@ -74,11 +74,16 @@
   (let [age (get-age old-state)
         job (-> old-state :game :job)
         tax-rate (-> old-state :game :tax-rate)
+        savings-rate (-> old-state :game :savings-rate)
         food-price (-> old-state :game :food-price)
         food-cost (if (> age 18)
                     (* (js/Math.max 0 (.getNormal RNG 0.5 1)) food-price -1)
                     0)]
-    (update-in old-state [:game :net-worth] #(+ % food-cost (when job (-> job :salary (/ 12) (* (- 1 tax-rate))))))))
+    (update-in old-state [:game :net-worth] #(+ % food-cost
+                                                (when job
+                                                  (*
+                                                   savings-rate
+                                                   (-> job :salary (/ 12) (* (- 1 tax-rate)))))))))
 
 (defn update-xp [old-state]
   (let [job (-> old-state :game :job)]
@@ -135,6 +140,7 @@
                  :experience 0
                  :tax-rate 0.1
                  :outcome nil
+                 :savings-rate 0.15
                  :food-price (js/Math.random)
                  :jobs (make-jobs (* 12 150))})
               (assoc :coin-positions (map (fn [_i] [(js/Math.random) (js/Math.random)]) (range 30)))
