@@ -9,7 +9,7 @@
     ["rot-js" :refer [RNG]]))
 
 (def job-names (js/JSON.parse (rc/inline "data/jobs.json")))
-(def start-month 156)
+(def start-month (* 17 12))
 (def domains ["tech" "retail" "hospitality"])
 (def mortality-rate-per-year (read-string (rc/inline "data/mortality-rate-per-year.edn")))
 (def job-board-size 10)
