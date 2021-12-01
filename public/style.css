@@ -199,6 +199,20 @@ nav#stats {
   width: 100%;
 }
 
+#end {
+  display: flex;
+  justify-content: center;
+}
+
+#end > div > * {
+  margin: 1em;
+  text-align: center;
+}
+
+#end img {
+  width: 200px;
+}
+
 /*** loader ***/
 
 #loading {
