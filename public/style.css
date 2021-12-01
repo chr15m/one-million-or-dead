@@ -63,7 +63,7 @@ nav > * {
 }
 
 .card h3 {
-  margin-top: 0px;
+  margin: 0.5em;
 }
 
 .card .application {
@@ -118,6 +118,10 @@ nav > * {
 
 .card.got:after {
   background: #99ff99;
+}
+
+.card p {
+  margin: 0.25em;
 }
 
 .fill {
