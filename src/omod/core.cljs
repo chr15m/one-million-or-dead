@@ -162,12 +162,6 @@
         month-name (.toLocaleString date "default" (clj->js {:month "short"}))]
     month-name))
 
-(defn component-nav [state]
-  [:nav
-   [:button {:on-click #(go-screen state :game)} "home"]
-   [:button {:on-click #(go-screen state :jobs)} "jobs"]
-   [:button {:on-click #(exit-game state)} "quit"]])
-
 (defn component-stats [state]
   [:nav#stats
    [:div "Net worth $" (-> @state :game :net-worth (.toFixed 0)) "k"]
@@ -177,7 +171,7 @@
 (defn component-game-state [state]
   [:div#game-state
    [component-stats state]
-   [component-nav state]])
+   [:button {:on-click #(go-screen state :game)} "back"]])
 
 (defn component-job-board [state]
   (let [month (or (-> @state :game :month) 0)
@@ -207,10 +201,11 @@
 
 (defn component-game [state]
   [:section#game.screen
-   [component-game-state state]
-   [:div "Job: " (or (-> @state :game :job :name) "None")]
-   [:> tw "🎃 🥚 "]
-   [:div "This is a game."]])
+   [component-stats state]
+   [:div
+    [:div "Job: " (or (-> @state :game :job :name) "None")]
+    [:button {:on-click #(go-screen state :jobs)} [:> tw "⚒️ job board"]]]
+   [:button {:on-click #(exit-game state)} "quit"]])
 
 (defn component-title [state]
   [:section#title.screen
