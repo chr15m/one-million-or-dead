@@ -181,6 +181,12 @@ nav#stats {
   --offset-y: 0;
 }
 
+#wealth {
+  min-height: 250px;
+  display: flex;
+  justify-content: end;
+}
+
 #wealth .coin {
   float: left;
   position: absolute;
