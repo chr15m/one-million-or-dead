@@ -53,6 +53,13 @@
        (* (js/Math.random) diff)
        a))))
 
+; https://stackoverflow.com/questions/664014/what-integer-hash-function-are-good-that-accepts-an-integer-hash-key#12996028
+(defn h [x]
+  (let [x (* (bit-xor (bit-shift-right x 16) x) 0x45d9f3b)
+        x (* (bit-xor (bit-shift-right x 16) x) 0x45d9f3b)
+        x (bit-xor (bit-shift-right x 16) x)]
+    x))
+
 ; *** functions *** ;
 
 (defn get-age [state]
@@ -130,6 +137,7 @@
                  :outcome nil
                  :food-price (js/Math.random)
                  :jobs (make-jobs (* 12 150))})
+              (assoc :coin-positions (map (fn [_i] [(js/Math.random) (js/Math.random)]) (range 30)))
               (assoc :screen :game)))
   (update-game-state state 1000))
 
@@ -162,16 +170,22 @@
         month-name (.toLocaleString date "default" (clj->js {:month "short"}))]
     month-name))
 
+(defn component-net-worth [state]
+  [:div "Net worth $" (-> @state :game :net-worth (.toFixed 0)) "k"])
+
+(defn component-age [state]
+  [:div (display-date @state) ", age " (get-age @state)])
+
 (defn component-stats [state]
   [:nav#stats
-   [:div "Net worth $" (-> @state :game :net-worth (.toFixed 0)) "k"]
+   [component-net-worth state]
    [:div "XP: " (-> @state :game :experience js/Math.floor)]
-   [:div (display-date @state) ", age " (get-age @state)]])
+   [component-age state]])
 
 (defn component-game-state [state]
   [:div#game-state
    [component-stats state]
-   [:button {:on-click #(go-screen state :game)} "back"]])
+   [:button {:on-click #(go-screen state :game)} "home"]])
 
 (defn component-job-board [state]
   (let [month (or (-> @state :game :month) 0)
@@ -199,9 +213,27 @@
               [:button {:on-click #(apply-for-job state job)} "apply"])]
            [:p "Experience: " (str (:experience job) " years")]]))]]))
 
+(defn component-wealth [state]
+  [:div#wealth
+    (let [net-worth (js/Math.round (-> @state :game :net-worth))
+          coin-positions (-> @state :coin-positions)]
+      (for [c (range net-worth)]
+        (let [[x y] (nth coin-positions (mod c (count coin-positions)))]
+          [:> tw {:key c
+                  ;:margin-top (str "-" (* c 10) "px")
+                  :style {"--offset-x" (* (- x 0.5) 400)
+                          "--offset-y" (+ (* (- y 0.5) 400)
+                                          (*
+                                           (int (/ c (count coin-positions)))
+                                           20))}
+                  :class "coin"}
+           "🪙"])))])
+
 (defn component-game [state]
   [:section#game.screen
-   [component-stats state]
+   [component-age state]
+   [component-wealth state]
+   [component-net-worth state]
    [:div
     [:div "Job: " (or (-> @state :game :job :name) "None")]
     [:button {:on-click #(go-screen state :jobs)} [:> tw "⚒️ job board"]]]

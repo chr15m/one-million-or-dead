@@ -176,6 +176,17 @@ nav#stats {
   justify-content: space-between;
 }
 
+:root {
+  --offset-x: 0;
+  --offset-y: 0;
+}
+
+#wealth .coin {
+  float: left;
+  position: absolute;
+  transform: scaleY(0.3) translateX(calc(var(--offset-x) * 1px)) translateY(calc(var(--offset-y) * -1px));
+}
+
 #job-market {
   flex-direction: row;
   display: flex;
