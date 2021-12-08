@@ -212,14 +212,22 @@
           (let [uuid (:uuid entity)
                 old-percent (or (-> allocations (get uuid) :percent) 0)
                 difference (- new-percent old-percent)
+                total-allocations-percent (+ (apply + (map (fn [[_uuid entry]] (:percent entry)) allocations)) difference)
                 other-allocations (remove (fn [[check-uuid _entry]] (= check-uuid uuid)) allocations)
-                reduced-allocations (reduce
-                                      (fn [new-allocations i]
-                                        (update-in new-allocations [(-> i :entity :uuid) :percent] dec))
-                                      (range difference) other-allocations)]
-            (js/console.log "other allocations" (clj->js other-allocations))
-            (js/console.log "reduced" (clj->js reduced-allocations))
-            ; if difference > 0 reduce the other allocations
+                ; if difference > 0 reduce the other allocations
+                reduced-allocations (when
+                                      (and
+                                        (> difference 0)
+                                        (> total-allocations-percent 100)
+                                        (> (count other-allocations) 0))
+                                      (reduce
+                                        (fn [new-allocations i]
+                                          (update-in (vec new-allocations) [(mod i (count new-allocations)) 1 :percent] #(js/Math.max 0 (dec (js/parseInt %)))))
+                                        (vec (shuffle other-allocations))
+                                        (range difference)))
+                reduced-allocations (when (> (count reduced-allocations) 0)
+                                      (remove (fn [[_uuid entry]] (js/console.log "entry" (clj->js entry)) (= (:percent entry) 0)) reduced-allocations))
+                allocations (if reduced-allocations (into {} reduced-allocations) allocations)]
             (if (> new-percent 0)
               (assoc allocations uuid {:entity entity
                                        :percent new-percent})
@@ -318,7 +326,7 @@
                   :min 0
                   :max 100
                   :value (or (-> @state :game :allocations (get uuid) :percent) 0)
-                  :on-change #(rebalance-portfolio-to bank (-> % .-target .-value))}]]]))])
+                  :on-change #(rebalance-portfolio-to bank (js/parseInt (-> % .-target .-value)))}]]]))])
 
 (defn component-houses-board [state]
   [:section#houses.screen
