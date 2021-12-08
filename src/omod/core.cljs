@@ -258,10 +258,16 @@
     [component-net-worth state]]
    [:div
     [:div "Job: " (or (-> @state :game :job :name) "None")]
-    [:button {:on-click #(go-screen state :jobs)} [:> tw "⚒️ job board"]]
-    [:button {:on-click #(go-screen state :banks)} [:> tw "🏦 banks"]]
-    [:button {:on-click #(go-screen state :stonks)} [:> tw "📈 stonks"]]
-    [:button {:on-click #(go-screen state :houses)} [:> tw "🏠 houses"]]]
+    [:button {:on-click #(go-screen state :jobs)}
+     [:> tw "⚒️ job board"]]
+    [:button {:on-click #(go-screen state :banks)}
+     [:> tw "🏦 banks"]]
+    [:button {:on-click #(go-screen state :stonks)
+              :class "alt-1"}
+     [:> tw "📈 stonks"]]
+    [:button {:on-click #(go-screen state :houses)
+              :class "alt-2"}
+     [:> tw "🏠 houses"]]]
    [:button {:on-click #(exit-game state)} "quit"]])
 
 (defn component-title [state]
