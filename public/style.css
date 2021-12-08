@@ -103,6 +103,11 @@ nav > * {
    background: #FFFF99;
 }
 
+.card:nth-child(odd):before,
+.card:nth-child(odd):after {
+   clip-path: polygon(2% 0, 99% 3%, 97% 93%, 0 95%);
+}
+
 .card:before {
   background: rgba(250, 250, 250, 0.2);
   transform: translate(0px, 8px);
@@ -155,6 +160,16 @@ button:after {
 button:before {
   background: rgba(50, 50, 50, 0.2);
   transform: translate(0px, 8px);
+}
+
+button.alt-1:before,
+button.alt-1:after {
+   clip-path: polygon(2% 5%, 99% 3%, 97% 93%, 5% 100%);
+}
+
+button.alt-2:before,
+button.alt-2:after {
+   clip-path: polygon(1% 0, 88% 1%, 99% 100%, 0 99%);
 }
 
 button:hover:before,

@@ -203,7 +203,8 @@
 (defn component-job-board [state]
   (let [month (or (-> @state :game :month) 0)
         has-job (-> @state :game :job)
-        jobs (subvec (-> @state :game :jobs vec) month (+ month job-board-size))]
+        jobs (subvec (-> @state :game :jobs vec) month (+ month job-board-size))
+        seed (-> @state :seed)]
     [:section#jobs.screen
      [component-game-state state]
      [:div
@@ -217,7 +218,9 @@
       [:h1 "Job market"]]
      [:div#job-market
       (for [j job-order]
-        (let [job (nth jobs (mod (- j month) job-board-size))]
+        (let [seed (-> seed (* 17) (+ j) js/Math.abs)
+              rng (-> RNG .clone (.setSeed seed))
+              job (nth jobs (mod (- j month) job-board-size))]
           [:div.card.parallelogram {:class (:status job)
                                     :key (:uuid job)}
            [:h3 (:name job)]
@@ -226,7 +229,9 @@
             (case (:status job)
               :denied [:p "You didn't get the job."]
               :got [:p "You got this job!"]
-              [:button {:on-click #(apply-for-job state job)} "apply"])]
+              [:button {:on-click #(apply-for-job state job)
+                        :class (.getItem rng #js ["" "alt-1" "alt-2"])}
+               "apply"])]
            [:p "Experience: " (str (:experience job) " years")]]))]]))
 
 (defn component-wealth [state]
@@ -253,7 +258,10 @@
     [component-net-worth state]]
    [:div
     [:div "Job: " (or (-> @state :game :job :name) "None")]
-    [:button {:on-click #(go-screen state :jobs)} [:> tw "⚒️ job board"]]]
+    [:button {:on-click #(go-screen state :jobs)} [:> tw "⚒️ job board"]]
+    [:button {:on-click #(go-screen state :banks)} [:> tw "🏦 banks"]]
+    [:button {:on-click #(go-screen state :stonks)} [:> tw "📈 stonks"]]
+    [:button {:on-click #(go-screen state :houses)} [:> tw "🏠 houses"]]]
    [:button {:on-click #(exit-game state)} "quit"]])
 
 (defn component-title [state]
@@ -289,8 +297,9 @@
 (defn init []
   (let [seed-from-url (-> (aget js/document "location" "search") (.slice 1))
         seed (if (= seed-from-url "")
-               (-> (js/Math.random) str (.split ".") second)
+               (-> (js/Math.random) str (.split ".") second int)
                seed-from-url)]
     (print "seed" seed)
+    (swap! state assoc :seed seed)
     (seedrandom seed #js {:global true}))
   (start))
