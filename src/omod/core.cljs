@@ -9,6 +9,7 @@
     ["rot-js" :refer [RNG]]))
 
 (def job-names (js/JSON.parse (rc/inline "data/jobs.json")))
+(def bank-names (-> (rc/inline "data/banks.txt") (.split "\n")))
 (def start-month (* 17 12))
 (def domains ["tech" "retail" "hospitality"])
 (def mortality-rate-per-year (read-string (rc/inline "data/mortality-rate-per-year.edn")))
@@ -19,17 +20,17 @@
 
 ; *** randomness *** ;
 
-(defn generate-strings [src n]
+(defn generate-strings [src n & [longest include]]
   (let [m (markov.)
-        lengths (.map job-names #(or (aget % "length") 0))
-        longest (apply js/Math.max lengths)]
+        lengths (.map src #(or (aget % "length") 0))
+        longest (or longest (apply js/Math.max lengths))]
     (.addStates m src)
     (.train m)
     (loop [out []]
       (if (< (count out) n)
         (recur
           (let [item (.generateRandom m longest)]
-            (if (= (.indexOf src item) -1)
+            (if (and (= (.indexOf src item) -1) (or (nil? include) (>= (.indexOf item include) 0))) 
               (conj out item)
               out)))
         out))))
@@ -44,6 +45,16 @@
            :salary (int (* (inc experience) multiplier))
            :experience experience
            :uuid (random-uuid)}))
+      names)))
+
+(defn make-banks [n]
+  (let [names (generate-strings bank-names n 20 "Bank")]
+    (map
+      (fn [n]
+        {:name n
+         :icon (.getItem RNG #js ["💰" "🤑" "💳" "🧧 " "💵" "💱" "💴" "🏦" "🪙" "💶" "💷" "💸" "🎖️" "🍁" "🌿" "🐉" "🌲" "🌳"])
+         :multiplier (* 0.25 (js/Math.random))
+         :uuid (random-uuid)})
       names)))
 
 (defn rng-int [a b]
@@ -139,10 +150,12 @@
                  :job nil
                  :experience 0
                  :tax-rate 0.1
+                 :interest-rate 0.05
                  :outcome nil
                  :savings-rate 0.15
                  :food-price (js/Math.random)
-                 :jobs (make-jobs (* 12 150))})
+                 :jobs (make-jobs (* 12 150))
+                 :banks (make-banks 5)})
               (assoc :coin-positions (map (fn [_i] [(js/Math.random) (js/Math.random)]) (range 30)))
               (assoc :screen :game)))
   (update-game-state state 1000))
@@ -234,6 +247,35 @@
                "apply"])]
            [:p "Experience: " (str (:experience job) " years")]]))]]))
 
+(defn component-stonks-board [state]
+  [:section#stonks.screen
+   [component-game-state state]
+   [:header
+    [:h1 "Stonks"]]])
+
+(defn component-banks-board [state]
+  [:section#banks.screen
+   [component-game-state state]
+   [:header
+    [:h1 "Banks"]]
+   (for [bank (-> @state :game :banks)]
+     (let [base-rate (-> @state :game :interest-rate)
+           rate (- base-rate (* (:multiplier bank) base-rate))]
+       [:div.card.bank.fill {:key (:uuid bank)}
+        [:h3 [:> tw (:icon bank)] (:name bank)]
+        [:p "Rate: " (-> rate (* 100) (.toFixed 2))]
+        [:p "Allocate: "
+         [:input {:type "range"
+                  :min 0
+                  :max 100
+                  :defaultValue 0}]]]))])
+
+(defn component-houses-board [state]
+  [:section#houses.screen
+   [component-game-state state]
+   [:header
+    [:h1 "Houses"]]])
+
 (defn component-wealth [state]
   [:div#wealth
     (let [net-worth (js/Math.round (-> @state :game :net-worth))
@@ -293,6 +335,9 @@
      [component-end-of-game state]
      (case (:screen @state)
        :jobs [component-job-board state]
+       :stonks [component-stonks-board state]
+       :banks [component-banks-board state]
+       :houses [component-houses-board state]
        :game [component-game state]
        [component-title state]))])
 

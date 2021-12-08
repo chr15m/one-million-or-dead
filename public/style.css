@@ -238,6 +238,20 @@ nav#stats {
   width: 200px;
 }
 
+#banks .bank img {
+  float: left;
+  margin-right: 1em;
+}
+
+#banks .card {
+  text-align: left;
+  align-items: baseline;
+}
+
+#banks .card h3 {
+  width: 100%;
+}
+
 /*** loader ***/
 
 #loading {
