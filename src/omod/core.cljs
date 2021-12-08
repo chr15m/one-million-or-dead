@@ -51,7 +51,8 @@
   (let [names (generate-strings bank-names n 20 "Bank")]
     (map
       (fn [n]
-        {:name n
+        {:type :bank
+         :name n
          :icon (.getItem RNG #js ["💰" "🤑" "💳" "🧧 " "💵" "💱" "💴" "🏦" "🪙" "💶" "💷" "💸" "🎖️" "🍁" "🌿" "🐉" "🌲" "🌳"])
          :multiplier (* 0.25 (js/Math.random))
          :uuid (random-uuid)})
@@ -117,19 +118,48 @@
       (assoc-in old-state [:game :outcome] :rich)
       old-state)))
 
+(defn bank-rate [old-state bank]
+  (let [base-rate (-> old-state :game :interest-rate)
+        rate (- base-rate (* (:multiplier bank) base-rate))]
+    rate))
+
+(def entity-allocation-fns
+  {:bank (fn [old-state bank amount]
+           (-> amount (* (bank-rate old-state bank)) (/ 12)))})
+
+(defn compute-entity-allocations [old-state]
+  (try
+    (let [net-worth (-> old-state :game :net-worth)
+          allocations (-> old-state :game :allocations)
+          earnings (map (fn [[_uuid item]]
+                          (let [entity (:entity item)
+                                entity-type (:type entity)
+                                earning-function (entity-type entity-allocation-fns)
+                                amount (* (:percent item) 0.01 net-worth)]
+                            (earning-function
+                              old-state
+                              entity
+                              amount)))
+                        allocations)
+          total-earned (apply + earnings)]
+      (if (> net-worth 0)
+        (assoc-in old-state [:game :net-worth] (+ net-worth total-earned))
+        old-state))
+    (catch :default e (js/console.error e) old-state)))
+
 (defn update-game-state [state interval]
-  ;(js/console.log "game state:" (clj->js @state))
-  ;(js/console.log "game state (game):" (clj->js (-> @state :game)))
   (when (:game @state)
     ; apply all the state updates
-    (swap! state
-           #(-> %
-                update-aliveness
-                update-tax-food
-                add-salary
-                update-xp
-                update-has-won
-                (update-in [:game :month] inc)))
+    (when (not (aget js/window "pause"))
+      (swap! state
+             #(-> %
+                  update-aliveness
+                  update-tax-food
+                  add-salary
+                  compute-entity-allocations
+                  update-xp
+                  update-has-won
+                  (update-in [:game :month] inc))))
     ; stop the ticker once there has been an outcome
     (when (not (-> @state :game :outcome))
       (js/setTimeout #(update-game-state state interval) interval))))
@@ -153,7 +183,7 @@
                  :interest-rate 0.05
                  :outcome nil
                  :savings-rate 0.15
-                 :food-price (js/Math.random)
+                 :food-price (-> (js/Math.random) (* 0.5))
                  :jobs (make-jobs (* 12 150))
                  :banks (make-banks 5)})
               (assoc :coin-positions (map (fn [_i] [(js/Math.random) (js/Math.random)]) (range 30)))
@@ -175,6 +205,25 @@
                                                   %)
                                                jobs)))]
                new-state)))))
+
+(defn rebalance-portfolio-to [entity new-percent]
+  (swap! state update-in [:game :allocations]
+        (fn [allocations]
+          (let [uuid (:uuid entity)
+                old-percent (or (-> allocations (get uuid) :percent) 0)
+                difference (- new-percent old-percent)
+                other-allocations (remove (fn [[check-uuid _entry]] (= check-uuid uuid)) allocations)
+                reduced-allocations (reduce
+                                      (fn [new-allocations i]
+                                        (update-in new-allocations [(-> i :entity :uuid) :percent] dec))
+                                      (range difference) other-allocations)]
+            (js/console.log "other allocations" (clj->js other-allocations))
+            (js/console.log "reduced" (clj->js reduced-allocations))
+            ; if difference > 0 reduce the other allocations
+            (if (> new-percent 0)
+              (assoc allocations uuid {:entity entity
+                                       :percent new-percent})
+              (dissoc allocations uuid))))))
 
 (defn exit-game [state]
   (swap! state dissoc :game)
@@ -259,16 +308,17 @@
    [:header
     [:h1 "Banks"]]
    (for [bank (-> @state :game :banks)]
-     (let [base-rate (-> @state :game :interest-rate)
-           rate (- base-rate (* (:multiplier bank) base-rate))]
-       [:div.card.bank.fill {:key (:uuid bank)}
+     (let [rate (bank-rate @state bank)
+           uuid (:uuid bank)]
+       [:div.card.bank.fill {:key uuid}
         [:h3 [:> tw (:icon bank)] (:name bank)]
         [:p "Rate: " (-> rate (* 100) (.toFixed 2))]
         [:p "Allocate: "
          [:input {:type "range"
                   :min 0
                   :max 100
-                  :defaultValue 0}]]]))])
+                  :value (or (-> @state :game :allocations (get uuid) :percent) 0)
+                  :on-change #(rebalance-portfolio-to bank (-> % .-target .-value))}]]]))])
 
 (defn component-houses-board [state]
   [:section#houses.screen
